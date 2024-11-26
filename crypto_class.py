@@ -47,7 +47,7 @@ class Crypto:
         nasdaq_data.index = nasdaq_data.index.tz_localize(None)
         return nasdaq_data
 
-    def coingekko_download(self, id=None, days=None, currency='usd', interval='daily', precision='2'):
+    def coingecko_download(self, id=None, days=None, currency='usd', interval='daily', precision='2'):
         """
         Downloads historical market chart data for a specific cryptocurrency from CoinGecko.
 
@@ -82,7 +82,7 @@ class Crypto:
         rows = []
         ### Download historical data for each coin
         for id in ids:
-            coin_data = self.coingekko_download(id=id, days=days)
+            coin_data = self.coingecko_download(id=id, days=days)
             prices = coin_data['prices']
             market_caps = coin_data['market_caps']
             for price, market_cap in zip(prices, market_caps): ### json transformation
