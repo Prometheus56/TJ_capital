@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-class AnalKing():
+class TVLAnal():
     def __init__(self, path_db, date):
         self.date = pd.to_datetime(date)
         self.path_db = pd.read_csv(path_db, parse_dates= ['Date'], index_col= 'Date', na_values="NAN")
@@ -105,7 +105,7 @@ class AnalKing():
 
 protocols_path = "/run/media/jakub/USB DRIVE/Aplikace/Databaze/protocols.csv"
 date = "2024-12-12"
-base = AnalKing(protocols_path, date)
+base = TVLAnal(protocols_path, date)
 first = base.pct_change(20)
 print(first.head(30))
 
