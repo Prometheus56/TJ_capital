@@ -2,28 +2,30 @@ import pandas as pd
 
 
 class TVLAnal():
-    def __init__(self, path_db, date):
+    def __init__(self, date):
         self.date = pd.to_datetime(date)
-        self.path_db = pd.read_csv(path_db, parse_dates= ['Date'], index_col= 'Date', na_values="NAN")
-    
+        self.chains_path = "/home/jakub/mnt/vpn_files/Databaze/Defillama/chains.csv"
+        self.protocols_path = "/home/jakub/mnt/vpn_files/Databaze/Defillama/protocols.csv"
+        self.chains_db = pd.read_csv(self.chains_path, parse_dates=['Date'], index_col= 'Date')
+        self.protocols_db = pd.read_csv(self.protocols_path, parse_dates=['Date'], index_col= 'Date')
 
     def divide_protocols(self):
-        """Divide protocols into group based on their TVL
-        parameters: /
-        output: dictionary group_list
-        
         """
-        # Load database and select specific day
-        db = self.path_db
-        select = db.loc[self.date]
+        Divide protocols into group based on their TVL
+        
+        Returns:
+                Dictionary: A dictionary containing groups divided by amount of TVL
+        """
+        select = self.protocols_db.loc[self.date]
 
-        # Define groups and transform name of the columns to list
+        ### Define groups and transform name of the columns to list
         imba = select[select > 5000000000].index.to_list()
         large = select[(select <= 5000000000) & (select > 2000000000)].index.to_list()
         big = select[(select <= 2000000000) & (select > 1000000000)].index.to_list()
         medium = select[(select <= 100000000000) & (select > 500000000)].index.to_list()
         small = select[(select <= 500000000) & (select > 150000000)].index.to_list()
         micro = select[select <= 150000000].index.to_list()
+
         # Store groups into dictionary
         group_list = {
             'imba': imba,
@@ -36,16 +38,16 @@ class TVLAnal():
         return group_list
     
     def divide_chains(self):
-        """Divide protocols into group based on their TVL
-        parameters: /
-        output: dictionary group_list
+        """
+        Divide protocols into group based on their TVL
+
+        Retruns:
+                Dictionary: A dictionary containing groups divided by amount of TVL
         
         """
-        # Load database and select specific day
-        db = self.path_db
-        select = db.loc[self.date]
+        select = self.chains_db.loc[self.date]
 
-        # Define groups and transform name of the columns to list
+        ### Define groups and transform name of the columns to list
         imba = select[select > 1000000000].index.to_list()
         large = select[(select <= 1000000000) & (select > 500000000)].index.to_list()
         big = select[(select <= 500000000) & (select > 100000000)].index.to_list()
@@ -64,37 +66,58 @@ class TVLAnal():
         }
         return group_list
     
-    def pct_change(self, no_days):
+    def pct_change(self, no_days, db_to_analyze):
         """
         Calculate percentage change between self.date and no_days before it.
 
-        Parameters:
+        Args:
+            db_to_analyze (str): "chains" or anything else to select between chains or protocols DF.
             no_days (int): How many days back from self.date to calculate percentage change.
 
         Returns:
-            float: Percentage change for each column (protocol) at the specified date.
+            DataFrame : Percentage change for each column (protocol) at the specified date.
         """
-        db = self.path_db
-        date = self.date
+        db = self.chains_db if db_to_analyze == "chains" else self.protocols_db
         
-        # Ensure `date` is within the DataFrame index
-        if date not in db.index:
-            raise ValueError(f"The date {date} is not in the database index.")
-        
-        # Calculate the reference date
-        try:
-            reference_date = db.index[db.index.get_loc(date) - no_days]
-        except IndexError:
-            raise ValueError(f"Not enough data to go {no_days} days back from {date}.")
-        
-        # Select the data for the target and reference dates
+        reference_date = db.index[db.index.get_loc(self.date) - no_days]
+
         target_data = db.loc[date]
         reference_data = db.loc[reference_date]
-        
-        # Compute percentage change
+
         result = ((target_data - reference_data) / reference_data) * 100
         
-        return result
+        return pd.DataFrame(result)
+
+    def top_gainers(self, db_to_analyze, no_days, TopX):
+        """
+        Calculate top gainers for each group.
+
+        Args:
+            db_to_analyze (str): "chains" or anything else to select between chains or protocols DF.
+            no_days (int): Number of days for percentage change calculation.
+            TopX (int): Number of top gainers to retrieve.
+
+        Returns:
+            dict: Top gainers for each group.
+            dict: Count of items in each group.
+        """
+        # Select the database based on the db_to_analyze
+        db_groups = self.divide_chains() if db_to_analyze == "chains" else self.divide_protocols()
+
+        group_count = {}
+        top_gainers_dict = {}
+
+        ### Calculate the number of items in each group
+        for group_name, group_data in db_groups.items():
+            group_count[group_name] = len(group_data)
+
+        ### Calculate top gainers for each group
+        for group_name, group_data in db_groups.items():
+            pct_change = self.pct_change(no_days, db_to_analyze).loc[group_data].dropna()
+            top_gainers = pct_change.nlargest(TopX, columns=pct_change.columns[0]) 
+            top_gainers_dict[group_name] = top_gainers
+
+        return top_gainers_dict, group_count
 
 
 
@@ -103,10 +126,10 @@ class TVLAnal():
 
 
 
-protocols_path = "/run/media/jakub/USB DRIVE/Aplikace/Databaze/protocols.csv"
-date = "2024-12-12"
-base = TVLAnal(protocols_path, date)
-first = base.pct_change(20)
-print(first.head(30))
+
+date = "2025-01-25"
+base = TVLAnal(date)
+first = base.top_gainers("chains",25 , 5 )
+print(first)
 
 
