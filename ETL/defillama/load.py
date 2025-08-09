@@ -158,6 +158,32 @@ class TVLDataLoader:
 
                     print(f"✅ New row upserted into '{table_name}' table.")
     
-    def create_symbol_table(self, data):
+    def create_tickers_table(self, data):
+        """
+        Load tickers data into the 'tickers' reference table.
+        """
         df = pd.DataFrame(data)
 
+        with psycopg2.connect(**self.db_config) as conn:
+            with conn.cursor() as cur:
+
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS tickers (
+                        symbol TEXT PRIMARY KEY,
+                        name   TEXT
+                    )
+                """)
+                
+                # Get existing symbols
+                cur.execute("SELECT symbol FROM tickers")
+                existing_symbols = {row[0] for row in cur.fetch_all()}
+
+                # Filter out already-existing ones
+                new_rows = df[~df["symbol"].isin(existing_symbols)]
+
+                # Insert new ones
+                for _, row in new_rows.iterrows():
+                    cur.execute(
+                        "INSERT INTO tickers (symbol,name) VALUES (%s, %s)",
+                        (row['symbol'], row["name"])
+                    )
