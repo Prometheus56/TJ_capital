@@ -14,14 +14,16 @@ from dotenv import load_dotenv
 import pandas as pd
 from typing import List
 
-from extract import get_defillama_data
-from transform import TRANSFORMS
+from .extract import get_defillama_data
+from .transform import TRANSFORMS
 from .load import TVLDataLoader
+from .transform import Transform
+transform = Transform()
 
 app = typer.Typer()
 load_dotenv()
 
-RAW_DIR = Path(r"/home/vpn_admin/TJ_Capital/TJ_Capital_database")
+RAW_DIR = Path(r"/home/vpnadmin/TJ_Capital/TJ_Capital_database")
 CLEAN_DIR = RAW_DIR / "updated"
 CLEAN_DIR.mkdir(exist_ok=True)
 
@@ -62,6 +64,7 @@ def setup(
         help=""
     )
     ) -> None:
+    
     global RAW_DIR, CLEAN_DIR
     RAW_DIR = raw_dir
     CLEAN_DIR = updated_dir or (RAW_DIR / "updated")
@@ -78,23 +81,24 @@ def update() -> None:
     Download daily data and update DB tables.
     """
     typer.secho("🔄 Fetching today's data and updating tables...", fg=typer.colors.BLUE)
-    loader = TVLDataLoader
+    loader = TVLDataLoader()
     loader.upsert_defillama_daily_rows()
     typer.secho("✅ Daily update complete.", fg=typer.colors.GREEN)
 
 @app.command()
 def create_reference_table():
     """
-    Create a reference table mapping coin names to their symbols/tickers.  ###COMING IN NEXT UPDATE
+    Create a reference table mapping coin names to their symbols/tickers.
     """
     typer.secho(
     f"🔄 Building reference table reference_table from chains_table and protocols_table...",
     fg=typer.colors.BLUE,
     )
-
-
-
+    transformed_data = transform.extract_chains_protocols_symbol()
+    loader = TVLDataLoader()
+    loader.create_tickers_table(transformed_data)
     typer.secho(f"✅ Reference table reference_table created successfully.",fg=typer.colors.GREEN,)
 
-if __name__ == "__name__":
+if __name__ == "__main__":
     app()
+

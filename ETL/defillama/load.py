@@ -91,7 +91,7 @@ class TVLDataLoader:
         csv_files = folder_path.glob('*_upd.csv')
         for csv_path in csv_files:
             table_name = csv_path.stem.replace("_upd","")
-            self.create_table(str(csv_path), table_name)
+            self.create_defillama_postgresql_table_from_csv(str(csv_path), table_name)
 
     def upsert_defillama_daily_rows(self) -> None:
         """
@@ -162,7 +162,7 @@ class TVLDataLoader:
         """
         Load tickers data into the 'tickers' reference table.
         """
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(list(data.items()), columns=["symbol", "name"])
 
         with psycopg2.connect(**self.db_config) as conn:
             with conn.cursor() as cur:
@@ -187,3 +187,5 @@ class TVLDataLoader:
                         "INSERT INTO tickers (symbol,name) VALUES (%s, %s)",
                         (row['symbol'], row["name"])
                     )
+                conn.commit()
+                print(f"✅ New reference table created.")

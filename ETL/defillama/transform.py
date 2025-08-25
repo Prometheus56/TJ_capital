@@ -81,7 +81,7 @@ class Transform():
         # Ensure numeric TVL, drop any non-numeric
         df['tvl'] = pd.to_numeric(df['tvl'], errors='coerce').fillna(0).round(0)
 
-        # **Filter out all protocols with TVL below 1 000 000**
+        # **Filter out all protocols with TVL below 5 000 000**
         df = df[df['tvl'] > 5_000_000]
 
         # Compute total TVL across the filtered set
@@ -197,7 +197,7 @@ class Transform():
         combined_df = combined_df.drop_duplicates(subset='name', keep='first')
 
         # Return final mapping as a dictionary
-        return print(dict(zip(combined_df['name'], combined_df['symbol'])))
+        return dict(zip(combined_df['name'], combined_df['symbol']))
         
 tf = Transform()
 TRANSFORMS: dict[str, Callable[[pd.DataFrame], pd.DataFrame]] = {
@@ -211,5 +211,3 @@ TRANSFORMS: dict[str, Callable[[pd.DataFrame], pd.DataFrame]] = {
     # Special approach
     'protocols': tf.transform_csv_protocols,
 }
-    
-tf.extract_chains_protocols_symbol()
